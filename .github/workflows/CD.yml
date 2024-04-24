@@ -1,0 +1,30 @@
+name: CD
+
+on:
+  release:
+    types: [released, prereleased]
+
+env:
+  PYTHONUNBUFFERED: "1"
+  FORCE_COLOR: "1"
+
+jobs:
+  run:
+    name: Deploy library
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: eifinger/setup-rye@v2
+        with:
+          enable-cache: true
+        
+      - name: Build library
+        run: rye build
+    
+      - name: Publish library
+        run: rye publish
