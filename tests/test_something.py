@@ -23,9 +23,6 @@ class AccountCreated(DomainEvent):
     async def publish(self) -> None: ...
 
 
-CreateAccountEvents: TypeAlias = AccountCreated
-
-
 class NegativeInitialBalanceError(DomainError):
     def __init__(self) -> None:
         super().__init__(
@@ -42,13 +39,11 @@ CreateAccountErrors: TypeAlias = NegativeInitialBalanceError | ZeroInitialBalanc
 
 
 @dataclass(frozen=True)
-class CreateAccount(
-    CommandComponent[CreateAccountEvents, CreateAccountErrors, ResponseCreateAccount]
-):
+class CreateAccount(CommandComponent[CreateAccountErrors, ResponseCreateAccount]):
     initial_balance: int
 
     def run(
-        self, events: list[CreateAccountEvents]
+        self, events: list[DomainEvent]
     ) -> Result[ResponseCreateAccount, CreateAccountErrors]:
         if self.initial_balance < 0:
             return Err(NegativeInitialBalanceError())
@@ -67,7 +62,7 @@ class CreateAccount(
 
 async def test_run_command() -> None:
     intial_balance = 10
-    create_account_events = []
+    create_account_events: list[DomainEvent] = []
     command_result = CreateAccount(
         initial_balance=intial_balance,
     ).run(

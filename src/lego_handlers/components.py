@@ -25,24 +25,23 @@ class DomainEvent(ABC):
         """Publish event."""
 
 
-DE = TypeVar("DE", bound=DomainEvent)
 R = TypeVar("R", bound=ResponseComponent)
 E = TypeVar("E", bound=DomainError)
 
 
 @dataclass(frozen=True)
-class AsyncCommandComponent(ABC, Generic[DE, E, R]):
+class AsyncCommandComponent(ABC, Generic[E, R]):
     """Handler async command."""
 
     @abstractmethod
-    async def run(self, events: list[DE]) -> Result[R, E]:
+    async def run(self, events: list[DomainEvent]) -> Result[R, E]:
         """Async execute command."""
 
 
 @dataclass(frozen=True)
-class CommandComponent(ABC, Generic[DE, E, R]):
+class CommandComponent(ABC, Generic[E, R]):
     """Handler command."""
 
     @abstractmethod
-    def run(self, events: list[DE]) -> Result[R, E]:
+    def run(self, events: list[DomainEvent]) -> Result[R, E]:
         """Execute command."""
