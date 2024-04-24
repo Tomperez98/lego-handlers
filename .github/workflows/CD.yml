@@ -2,7 +2,7 @@ name: CD
 
 on:
   release:
-    types: [released, prereleased]
+    types: [released]
 
 env:
   PYTHONUNBUFFERED: "1"
