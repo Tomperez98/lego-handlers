@@ -27,4 +27,6 @@ jobs:
         run: rye build
     
       - name: Publish library
-        run: rye publish --token ${{ secrets.PYPI_TOKEN }}
+        env:
+          PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
+        run: rye publish --token $PYPI_TOKEN
