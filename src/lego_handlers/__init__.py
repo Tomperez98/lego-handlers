@@ -14,11 +14,13 @@ from lego_handlers.components import (
 )
 
 T = TypeVar("T")
+E = TypeVar("E", bound=DomainError)
+R = TypeVar("R", bound=ResponseData)
 
 
 async def process_result(
-    result: Result[tuple[ResponseData, list[DomainEvent]], DomainError],
-    handler: Callable[[Result[ResponseData, DomainError]], T],
+    result: Result[tuple[R, list[DomainEvent]], E],
+    handler: Callable[[Result[R, E]], T],
     *,
     publish_events: bool,
 ) -> T:

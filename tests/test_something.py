@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import TypeAlias
 from uuid import UUID, uuid4
 
 import lego_handlers
@@ -33,11 +34,14 @@ class ZeroInitialBalanceError(DomainError):
         super().__init__("Not possible to create account with zero initial balance.")
 
 
+_DomainErrors: TypeAlias = ZeroInitialBalanceError | NegativeInitialBalanceError
+
+
 def create_account(
     initial_balance: int,
 ) -> Result[
     tuple[ResponseCreateAccount, list[DomainEvent]],
-    ZeroInitialBalanceError | NegativeInitialBalanceError,
+    _DomainErrors,
 ]:
     events: list[DomainEvent] = []
     if initial_balance < 0:
@@ -56,7 +60,9 @@ def create_account(
     )
 
 
-def _result_hanlder(result: Result[ResponseData, DomainError]) -> str:
+def _result_hanlder(
+    result: Result[ResponseCreateAccount, _DomainErrors],
+) -> str:
     match result:
         case Ok():
             return "Data"
