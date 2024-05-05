@@ -24,14 +24,16 @@ async def process_result(
     *,
     publish_events: bool,
 ) -> T:
-    if isinstance(result, Ok):
-        response_data, events = result.unwrap()
-        if publish_events:
-            await _publish_events(events=events)
-        return handler(Ok(response_data))
-    if isinstance(result, Err):
-        return handler(result)
-    assert_never(result)
+    match result:
+        case Ok(data_and_events):
+            response_data, events = data_and_events
+            if publish_events:
+                await _publish_events(events=events)
+            return handler(Ok(response_data))
+        case Err(error):
+            return handler(Err(error))
+        case _:
+            assert_never(result)
 
 
 async def _publish_events(events: list[DomainEvent]) -> None:
