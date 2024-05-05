@@ -8,7 +8,7 @@
 #   with-sources: false
 
 -e file:.
-coverage==7.5.0
+coverage==7.5.1
     # via pytest-cov
 exceptiongroup==1.2.1
     # via pytest
@@ -21,7 +21,7 @@ packaging==24.0
     # via pytest
 pluggy==1.5.0
     # via pytest
-pytest==8.1.1
+pytest==8.2.0
     # via pytest-asyncio
     # via pytest-cov
 pytest-asyncio==0.23.6
