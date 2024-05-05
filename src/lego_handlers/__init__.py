@@ -5,6 +5,7 @@ from collections.abc import Callable
 from typing import TypeVar
 
 from result import Err, Ok, Result
+from typing_extensions import assert_never
 
 from lego_handlers.components import (
     DomainError,
@@ -21,13 +22,14 @@ async def process_result(
     *,
     publish_events: bool,
 ) -> T:
-    match result:
-        case Ok((response, events)):
-            if publish_events:
-                await _publish_events(events=events)
-            return handler(Ok(response))
-        case Err():
-            return handler(result)
+    if isinstance(result, Ok):
+        response_data, events = result.unwrap()
+        if publish_events:
+            await _publish_events(events=events)
+        return handler(Ok(response_data))
+    if isinstance(result, Err):
+        return handler(result)
+    assert_never(result)
 
 
 async def _publish_events(events: list[DomainEvent]) -> None:
