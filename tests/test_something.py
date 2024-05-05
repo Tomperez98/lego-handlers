@@ -3,16 +3,12 @@ from typing import TypeAlias
 from uuid import UUID, uuid4
 
 import lego_handlers
-from lego_handlers.components import (
-    DomainError,
-    DomainEvent,
-    ResponseData,
-)
+from lego_handlers.components import Command, DomainError, DomainEvent, OutputData
 from result import Err, Ok, Result
 
 
 @dataclass(frozen=True)
-class ResponseCreateAccount(ResponseData):
+class ResponseCreateAccount(OutputData):
     account_id: UUID
     initial_balance: int
 
@@ -37,55 +33,69 @@ class ZeroInitialBalanceError(DomainError):
 _DomainErrors: TypeAlias = ZeroInitialBalanceError | NegativeInitialBalanceError
 
 
-def create_account(
-    initial_balance: int,
-) -> Result[
-    tuple[ResponseCreateAccount, list[DomainEvent]],
-    _DomainErrors,
-]:
-    events: list[DomainEvent] = []
-    if initial_balance < 0:
-        return Err(NegativeInitialBalanceError())
+@dataclass(frozen=True)
+class CreateAccount(Command[ResponseCreateAccount, _DomainErrors]):
+    initial_balance: int
 
-    if initial_balance == 0:
-        return Err(ZeroInitialBalanceError())
+    def run(
+        self, domain_events: list[DomainEvent]
+    ) -> Result[ResponseCreateAccount, _DomainErrors]:
+        if self.initial_balance < 0:
+            return Err(NegativeInitialBalanceError())
 
-    events.append(AccountCreated())
-
-    return Ok(
-        (
-            ResponseCreateAccount(account_id=uuid4(), initial_balance=initial_balance),
-            events,
+        if self.initial_balance == 0:
+            return Err(ZeroInitialBalanceError())
+        domain_events.append(AccountCreated())
+        return Ok(
+            ResponseCreateAccount(
+                account_id=uuid4(), initial_balance=self.initial_balance
+            )
         )
-    )
 
 
-def _result_hanlder(
+def _client_handler(
     result: Result[ResponseCreateAccount, _DomainErrors],
 ) -> str:
     match result:
         case Ok():
             return "Data"
         case Err():
-            return str(result)
+            return str(result.err())
 
 
 async def test_run_command() -> None:
     intial_balance = 10
-    command_result = create_account(
-        initial_balance=intial_balance,
+    command_result_and_events = await lego_handlers.run_and_collect_events(
+        cmd=CreateAccount(
+            initial_balance=intial_balance,
+        ),
     )
-    assert isinstance(command_result, Ok)
-    response_data, events = command_result.unwrap()
+    assert isinstance(command_result_and_events, Ok)
+    response_data, events = command_result_and_events.unwrap()
     assert response_data.initial_balance == intial_balance
     assert len(events) == 1
-    await lego_handlers.process_result(
-        result=command_result,
-        handler=_result_hanlder,
-        publish_events=False,
+    assert (
+        await lego_handlers.process_result(
+            cmd_result=command_result_and_events,
+            publish_events=False,
+            client_handler=_client_handler,
+        )
+    ) == "Data"
+
+
+async def test_error() -> None:
+    cmd_result_and_events = await lego_handlers.run_and_collect_events(
+        cmd=CreateAccount(
+            initial_balance=-10,
+        ),
     )
 
-
-def test_error() -> None:
-    command_result = create_account(initial_balance=-10)
-    assert isinstance(command_result, Err)
+    assert isinstance(cmd_result_and_events, Err)
+    assert isinstance(cmd_result_and_events.err(), NegativeInitialBalanceError)
+    assert (
+        await lego_handlers.process_result(
+            cmd_result=cmd_result_and_events,
+            publish_events=False,
+            client_handler=_client_handler,
+        )
+    ) == str(NegativeInitialBalanceError())

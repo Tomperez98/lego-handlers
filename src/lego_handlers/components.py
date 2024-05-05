@@ -2,6 +2,9 @@
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from typing import Generic, TypeVar
+
+import result
 
 
 class DomainError(Exception):
@@ -9,7 +12,7 @@ class DomainError(Exception):
 
 
 @dataclass(frozen=True)
-class ResponseData:
+class OutputData:
     """Handler response data."""
 
 
@@ -20,3 +23,21 @@ class DomainEvent(ABC):
     @abstractmethod
     async def publish(self) -> None:
         """Publish event."""
+
+
+Out = TypeVar("Out", bound=OutputData)
+Err = TypeVar("Err", bound=DomainError)
+
+
+@dataclass(frozen=True)
+class Command(ABC, Generic[Out, Err]):
+    @abstractmethod
+    def run(self, domain_events: list[DomainEvent]) -> result.Result[Out, Err]:
+        """Execute command."""
+
+
+@dataclass(frozen=True)
+class AsyncCommand(ABC, Generic[Out, Err]):
+    @abstractmethod
+    async def run(self, domain_events: list[DomainEvent]) -> result.Result[Out, Err]:
+        """Execute async command."""
